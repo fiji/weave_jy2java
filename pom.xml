@@ -44,6 +44,11 @@
 		</dependency>
 	</dependencies>
 
+	<ciManagement>
+		<system>Jenkins</system>
+		<url>http://jenkins.imagej.net/job/weave_jy2java/</url>
+	</ciManagement>
+
 	<scm>
 		<connection>scm:git:git://github.com/fiji/weave_jy2java</connection>
 		<developerConnection>scm:git:git@github.com:fiji/weave_jy2java</developerConnection>
