@@ -37,10 +37,10 @@
 			<artifactId>Refresh_Javas</artifactId>
 			<version>${Refresh_Javas.version}</version>
 		</dependency>
+		<!-- script editor -->
 		<dependency>
-			<groupId>sc.fiji</groupId>
-			<artifactId>Script_Editor</artifactId>
-			<version>${Script_Editor.version}</version>
+			<groupId>net.imagej</groupId>
+			<artifactId>imagej-ui-swing</artifactId>
 		</dependency>
 	</dependencies>
 

@@ -1,37 +1,24 @@
 package fiji.scripting;
 
-import java.util.Map;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Iterator;
-import java.util.SortedSet;
-import java.util.SortedMap;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.HashMap;
-import java.util.Queue;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import fiji.scripting.java.Refresh_Javas;
-import fiji.scripting.Script_Editor;
-import fiji.scripting.TextEditor;
-import fiji.FijiClassLoader;
-import java.net.URLClassLoader;
-import java.net.URL;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.lang.reflect.Modifier;
-import java.io.FileOutputStream;
+import ij.IJ;
+
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.lang.reflect.Modifier;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
-import ij.IJ;
+
+import org.scijava.Context;
+
+import net.imagej.ui.swing.script.TextEditor;
+import fiji.scripting.java.Refresh_Javas;
 
 
 /* An utility class to inline java code inside any script of any language.
@@ -156,9 +143,10 @@ public class Weaver {
 		}
 		if (showJavaCode) {
 			// Not from the not-yet-saved file (that file "doesn't exist" ever)
-			TextEditor ted = Script_Editor.getInstance();
-			if (null == ted) ted = new TextEditor("gen" + k + ".java", sb.toString());
-			else ted.newTab(sb.toString(), ".java");
+			final Context context = (Context) IJ.runPlugIn(Context.class.getName(), "");
+			TextEditor ted = new TextEditor(context);
+			ted.createNewDocument("gen" + k + ".java", sb.toString());
+			ted.setVisible(true);
 		}
 		Writer writer = new FileWriter(f);
 		writer.write(sb.toString());
