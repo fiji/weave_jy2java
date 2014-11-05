@@ -1,5 +1,6 @@
 package fiji.scripting;
 
+import fiji.scripting.java.Refresh_Javas;
 import ij.IJ;
 
 import java.io.File;
@@ -15,10 +16,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
-import org.scijava.Context;
-
 import net.imagej.ui.swing.script.TextEditor;
-import fiji.scripting.java.Refresh_Javas;
+
+import org.scijava.Context;
 
 
 /* An utility class to inline java code inside any script of any language.
