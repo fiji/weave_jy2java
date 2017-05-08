@@ -10,7 +10,9 @@ import java.io.Writer;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -94,18 +96,38 @@ public class Weaver {
 	{
 		return inline(code, bindings, null, false);
 	}
-	static public final <T extends Object> Callable<T> inline(final String code, final Map<String,?> bindings,
-			final boolean showJavaCode) throws Throwable
+	
+	static public final <T extends Object> Callable<T> inline(final String code, final Map<String,?> bindings, final boolean showJavaCode) throws Throwable
 	{
-		return inline(code, bindings, null, showJavaCode);
+		return inline(code, bindings, null, showJavaCode, new ArrayList<Class<?>>());
 	}
+	
 	static public final <T extends Object> Callable<T> inline(final String code, final Map<String,?> bindings,
 			final Class<T> returnType) throws Throwable
 	{
-		return inline(code, bindings, returnType, false);
+		return inline(code, bindings, returnType, false, new ArrayList<Class<?>>());
 	}
+	
 	static public final <T extends Object> Callable<T> inline(final String code, final Map<String,?> bindings,
-			final Class<T> returnType, final boolean showJavaCode) throws Throwable
+			final Class<T> returnType, final List<Class<?>> imports) throws Throwable
+	{
+		return inline(code, bindings, returnType, false, imports);
+	}
+	
+	static public final <T extends Object> Callable<T> inline(final String code, final Map<String,?> bindings,
+			final List<Class<?>> imports) throws Throwable
+	{
+		return inline(code, bindings, null, false, imports);
+	}
+	
+	static public final <T extends Object> Callable<T> inline(final String code, final Map<String,?> bindings, final Class<T> returnType, final boolean showJavaCode) throws Throwable
+	{
+		return inline(code, bindings, null, false, new ArrayList<Class<?>>());
+	}
+
+	
+	static public final <T extends Object> Callable<T> inline(final String code, final Map<String,?> bindings,
+			final Class<T> returnType, final boolean showJavaCode, final List<Class<?>> imports) throws Throwable
 	{
 		// Buffer to store the contents of the java file
 		final StringBuilder sb = new StringBuilder(4096);
@@ -116,8 +138,13 @@ public class Weaver {
 		final Class<?> rt = null == returnType ? Object.class : returnType;
 		// 1. Header of the java file
 		sb.append("package weave;\n")
-		  .append("import java.util.concurrent.Callable;\n")
-		  .append("public final class gen").append(k)
+		  .append("import java.util.concurrent.Callable;\n");
+		
+		for (final Class<?> c : imports) {
+			sb.append("import ").append(c.getName()).append(";\n");
+		}
+		
+		sb.append("public final class gen").append(k)
 		  .append(" implements Callable<").append(rt.getName())
 		  .append(">{\n");
 		// 2. Setup fields to represent the bindings
