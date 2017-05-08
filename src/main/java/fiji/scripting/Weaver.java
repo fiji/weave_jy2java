@@ -188,6 +188,8 @@ public class Weaver {
 		} catch (Throwable t) {
 			IJ.handleException(t);
 			throw t;
+		} finally {
+			loader.close();
 		}
 	}
 
