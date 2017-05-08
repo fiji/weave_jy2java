@@ -16,7 +16,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
-import net.imagej.ui.swing.script.TextEditor;
+import org.scijava.ui.swing.script.TextEditor;
 
 import org.scijava.Context;
 
