@@ -56,6 +56,8 @@ print w.call()
  *
  * The java-embedding approach is intended for short snippets of code,
  * but any code suitable for the code block of a static method is allowed.
+ * 
+ * @author Albert Cardona
  *
  */
 public class Weaver {
