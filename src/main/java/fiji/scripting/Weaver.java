@@ -1,12 +1,10 @@
 package fiji.scripting;
 
-import fiji.scripting.java.Refresh_Javas;
-import ij.IJ;
-
 import java.io.File;
 import java.io.FileWriter;
-import java.io.OutputStream;
 import java.io.Writer;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -17,10 +15,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
-
-import org.scijava.ui.swing.script.TextEditor;
-
-import org.scijava.Context;
 
 
 /* An utility class to inline java code inside any script of any language.
@@ -125,7 +119,6 @@ public class Weaver {
 		return inline(code, bindings, null, false, new ArrayList<Class<?>>());
 	}
 
-	
 	static public final <T extends Object> Callable<T> inline(final String code, final Map<String,?> bindings,
 			final Class<T> returnType, final boolean showJavaCode, final List<Class<?>> imports) throws Throwable
 	{
@@ -186,10 +179,21 @@ public class Weaver {
 			}
 		}
 		try {
-			Refresh_Javas compiler = new Refresh_Javas();
-			OutputStream out = new IJLogOutputStream();
-			compiler.setOutputStreams(out, out);
-			compiler.compile(f.getAbsolutePath(), null);
+			// Obsolete library
+			//Refresh_Javas compiler = new Refresh_Javas();
+			//OutputStream out = new IJLogOutputStream();
+			//compiler.setOutputStreams(out, out);
+			//compiler.compile(f.getAbsolutePath(), null);
+			
+			// Fails with minimaven exception
+			//OutputStream out = new IJLogOutputStream();
+			//new JavaEngine().compile(f, new PrintWriter(out));
+			
+			Compiler.Result r = Compiler.compile(f.getAbsolutePath(), Compiler.getClasspath(), tmpDir.getAbsolutePath(), null, null);
+			if (!r.success) {
+				System.out.println(r.errorMessage);
+				return null;
+			}
 		} finally {
 			// 6. Set the temporary files for deletion when the JVM exits
 			// The .java file
@@ -204,15 +208,62 @@ public class Weaver {
 */
 		}
 		// 7. Load the class file
-		URLClassLoader loader = new URLClassLoader(new URL[]{tmpDir.toURI().toURL()}, IJ.getClassLoader());
+		URLClassLoader loader = new URLClassLoader(new URL[]{tmpDir.toURI().toURL()}, Weaver.class.getClassLoader());
 
 		try {
 			return (Callable<T>) loader.loadClass(className).newInstance();
 		} catch (Throwable t) {
-			IJ.handleException(t);
+			// If in Fiji/ImageJ, show the exception in a text window:
+			try {
+				Weaver.class.getClassLoader()
+				  .loadClass("ij.IJ")
+				  .getMethod("handleException", new Class[]{Throwable.class})
+				  .invoke(null, new Object[]{t});
+			} catch (Throwable tt) {
+				tt.printStackTrace();
+			}
+			// ... and re-throw it to stop the script execution
 			throw t;
 		} finally {
 			loader.close();
+		}
+	}
+
+	/**
+	 * If running from Fiji/ImageJ, tries to show the generated java code
+	 * in a Script Editor window, otherwise prints it to the stdout.
+	 */
+	private static void showJavaCode(final String filename, final String code) {
+		try {			
+			// Do this, but without depending on Fiji/ImageJ:
+
+			//final Context context = (Context) IJ.runPlugIn(Context.class.getName(), "");
+			//TextEditor ted = new TextEditor(context);
+			//ted.createNewDocument("gen" + k + ".java", sb.toString());
+			//ted.setVisible(true);
+
+			ClassLoader loader = Weaver.class.getClassLoader();
+			try {
+				Class<?> context_class = loader.loadClass("org.scijava.Context");
+				Method runPlugIn = loader.loadClass("ij.IJ").getMethod("runPlugIn", new Class[] {String.class, String.class});
+				Object context = runPlugIn.invoke(null, new Object[]{"org.scijava.Context", ""});
+				
+				Class<?> editor_class = loader.loadClass("org.scijava.ui.swing.script.TextEditor");
+				Constructor<?> editor_constructor = editor_class.getConstructor(new Class[]{context_class});
+				Object editor = editor_constructor.newInstance(new Object[]{context});
+				Method editor_cnd = editor_class.getMethod("createNewDocument", new Class[]{String.class, String.class});
+				editor_cnd.invoke(editor, new Object[]{filename, code});
+				Method editor_sv = editor_class.getMethod("setVisible", new Class[]{Boolean.TYPE});
+				editor_sv.invoke(editor, new Object[]{true});
+			} catch (Exception e) {
+				e.printStackTrace();
+				// In case of failure (not being in Fiji/ImageJ) print code to stdout
+				System.out.println("###### Weaver.inline GENERATED CODE #####");
+				System.out.println(code);
+				System.out.println("###### END #####");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -266,68 +317,5 @@ public class Weaver {
 			return new Type(sb.toString());
 		}
 		return new Type(c.getName());
-	}
-
-	protected static class IJLogOutputStream extends OutputStream {
-		public byte[] buffer = new byte[16384];
-		public int len;
-
-		protected synchronized void ensure(int length) {
-			if (buffer.length >= length)
-				return;
-
-			int newLength = buffer.length * 3 / 2;
-			if (newLength < length)
-				newLength = length + 16;
-			byte[] newBuffer = new byte[newLength];
-			System.arraycopy(buffer, 0, newBuffer, 0, len);
-			buffer = newBuffer;
-		}
-
-		public synchronized void write(int b) {
-			ensure(len + 1);
-			buffer[len++] = (byte)b;
-			if (b == '\n')
-				flush();
-		}
-
-		public synchronized void write(byte[] buffer) {
-			write(buffer, 0, buffer.length);
-		}
-
-		public synchronized void write(byte[] buffer, int offset, int length) {
-			int eol = length;
-			while (eol > 0)
-				if (buffer[eol - 1] == '\n')
-					break;
-				else
-					eol--;
-			if (eol >= 0) {
-				ensure(len + eol);
-				System.arraycopy(buffer, offset, this.buffer, len, eol);
-				len += eol;
-				flush();
-				length -= eol;
-				if (length == 0)
-					return;
-				offset += eol;
-			}
-			ensure(len + length);
-			System.arraycopy(buffer, offset, this.buffer, len, length);
-			len += length;
-		}
-
-		public void close() {
-			flush();
-		}
-
-		public synchronized void flush() {
-			if (len > 0) {
-				if (buffer[len - 1] == '\n')
-					len--;
-				IJ.log(new String(buffer, 0, len));
-			}
-			len = 0;
-		}
 	}
 }
