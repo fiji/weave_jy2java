@@ -146,7 +146,7 @@ public class Weaver {
 		
 		sb.append("public final class gen").append(k)
 		  .append(" implements Callable<").append(rt.getName())
-		  .append(">{\n");
+		  .append("> {\n");
 		// 2. Setup fields to represent the bindings
 		for (final Map.Entry<String,?> e : bindings.entrySet()) {
 			final String name = e.getKey();
@@ -163,7 +163,7 @@ public class Weaver {
 		}
 		// 3. Method that runs the desired code
 		sb.append("public final ").append(rt.getName())
-		  .append(" call() { ").append(code).append("\n}}");
+		  .append(" call() { ").append(code).append("}\n}");
 		// 4. Save the file to a temporary directory
 		File tmpDir = new File(System.getProperty("java.io.tmpdir"));
 		final File f = new File(tmpDir, "/weave/gen" + k + ".java");
@@ -171,11 +171,7 @@ public class Weaver {
 			throw new Exception("Could not create directories for " + f);
 		}
 		if (showJavaCode) {
-			// Not from the not-yet-saved file (that file "doesn't exist" ever)
-			final Context context = (Context) IJ.runPlugIn(Context.class.getName(), "");
-			TextEditor ted = new TextEditor(context);
-			ted.createNewDocument("gen" + k + ".java", sb.toString());
-			ted.setVisible(true);
+			showJavaCode("gen" + k + ".java", sb.toString());
 		}
 		Writer writer = new FileWriter(f);
 		writer.write(sb.toString());
