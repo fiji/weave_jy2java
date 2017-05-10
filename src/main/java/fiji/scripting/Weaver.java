@@ -157,20 +157,28 @@ public class Weaver {
 		// 3. Method that runs the desired code
 		sb.append("public final ").append(rt.getName())
 		  .append(" call() { ").append(code).append("}\n}");
-		// 4. Save the file to a temporary directory
-		File tmpDir = new File(System.getProperty("java.io.tmpdir"));
-		final File f = new File(tmpDir, "/weave/gen" + k + ".java");
-		if (!f.getParentFile().exists() && !f.getParentFile().mkdirs()) {
-			throw new Exception("Could not create directories for " + f);
-		}
+
 		if (showJavaCode) {
 			showJavaCode("gen" + k + ".java", sb.toString());
 		}
+		
+		return (Callable<T>) generate(className, sb.toString());
+	}
+	
+	static private Object generate(final String className, final String javaCode) throws Throwable {
+		// 4. Save the file to a temporary directory
+		String relFilePath = "/" + className.replace('.', '/') + ".java"; // That is: "/weave/gen" + k + ".java"
+		File tmpDir = new File(System.getProperty("java.io.tmpdir"));
+		final File f = new File(tmpDir, relFilePath);
+		if (!f.getParentFile().exists() && !f.getParentFile().mkdirs()) {
+			throw new Exception("Could not create directories for " + f);
+		}
 		Writer writer = new FileWriter(f);
-		writer.write(sb.toString());
+		writer.write(javaCode);
 		writer.close();
+
 		// 5. Compile the file, removing first any class file names that match
-		final Pattern pclass = Pattern.compile("^gen" + k + ".*class$");
+		final Pattern pclass = Pattern.compile("^" + className.substring(className.lastIndexOf('.') + 1) + ".*class$");
 		for (File fc : f.getParentFile().listFiles()) {
 			if (pclass.matcher(fc.getName()).matches()) {
 				if (!fc.delete()) {
@@ -211,7 +219,7 @@ public class Weaver {
 		URLClassLoader loader = new URLClassLoader(new URL[]{tmpDir.toURI().toURL()}, Weaver.class.getClassLoader());
 
 		try {
-			return (Callable<T>) loader.loadClass(className).newInstance();
+			return loader.loadClass(className).newInstance();
 		} catch (Throwable t) {
 			// If in Fiji/ImageJ, show the exception in a text window:
 			try {
