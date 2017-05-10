@@ -236,6 +236,51 @@ public class Weaver {
 			loader.close();
 		}
 	}
+	
+	public static Object method(final String method) throws Throwable {
+		return method(method, new ArrayList<>(), false);
+	}
+	
+	public static Object method(final String method, final List<Class<?>> imports) throws Throwable {
+		return method(method, imports, false);
+	}
+	
+	/**
+	 * Define a method or methods, have an instance of an object implementing the method(s) returned to you.
+	 * Declare the method(s) as static for simplicity, and use the list of imports to simplify the code.
+	 * No bindings are defined; instead, pass objects directly to the method(s) arguments.
+	 * 
+	 * @param method The declaration(s) of the java method(s) to implement.
+	 * @param imports The list of imports to add to the .java file.
+	 * @param showJavaCode Whether or not to show the generated code in a Script Editor window.
+	 * @return An instance of an object with the desired method(s).
+	 * @throws Throwable
+	 */
+	public static Object method(final String method, final List<Class<?>> imports, final boolean showJavaCode) throws Throwable {
+		// Buffer to store the contents of the java file
+		final StringBuilder sb = new StringBuilder(4096);
+		// Acquire a unique number to generate a unique class name
+		final int k = K.incrementAndGet();
+		final String className = "weave.gen" + k;
+		// Header
+		sb.append("package weave;\n\n");
+		// Imports
+		for (final Class<?> c : imports) {
+			sb.append("import ").append(c.getName()).append(";\n");
+		}
+		// Class declaration
+		sb.append("\npublic final class ").append("gen" + k).append(" {\n");
+		// Method: the provided code
+		sb.append(method);
+		// Closing
+		sb.append("\n}");
+		
+		if (showJavaCode) {
+			showJavaCode("gen" + k + ".java", sb.toString());
+		}
+
+		return generate(className, sb.toString());
+	}
 
 	/**
 	 * If running from Fiji/ImageJ, tries to show the generated java code
