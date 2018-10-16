@@ -221,9 +221,9 @@ public class Weaver {
 
 		try {
 			final Class<?> outer = loader.loadClass(className);
-			// Find and load subclasses, if any
+			// Find and load inner classes, if any
 			final String simpleName = className.substring(6); // Without "weave." package name
-			for (final String subclassFilename : new File(tmpDir.getAbsolutePath() + "/weave/").list(new FilenameFilter() {
+			for (final String innerClassFilename : new File(tmpDir.getAbsolutePath() + "/weave/").list(new FilenameFilter() {
 				@Override
 				public final boolean accept(final File dir, final String name) {
 					return name.startsWith(simpleName)
@@ -231,8 +231,8 @@ public class Weaver {
 					   && name.endsWith(".class");
 				}
 			})) {
-				final String subclassName = "weave." + subclassFilename.substring(0, subclassFilename.length() - 6); // minus ".class"
-				loader.loadClass(subclassName);
+				final String innerClassName = "weave." + innerClassFilename.substring(0, innerClassFilename.length() - 6); // minus ".class"
+				loader.loadClass(innerClassName);
 			}
 			
 			return outer.newInstance();
