@@ -2,6 +2,7 @@ package fiji.scripting;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.Writer;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -219,7 +220,22 @@ public class Weaver {
 		URLClassLoader loader = new URLClassLoader(new URL[]{tmpDir.toURI().toURL()}, Weaver.class.getClassLoader());
 
 		try {
-			return loader.loadClass(className).newInstance();
+			final Class<?> outer = loader.loadClass(className);
+			// Find and load subclasses, if any
+			final String simpleName = className.substring(6); // Without "weave." package name
+			for (final String subclassFilename : new File(tmpDir.getAbsolutePath() + "/weave/").list(new FilenameFilter() {
+				@Override
+				public final boolean accept(final File dir, final String name) {
+					return name.startsWith(simpleName)
+					   && '$' == name.charAt(simpleName.length())
+					   && name.endsWith(".class");
+				}
+			})) {
+				final String subclassName = "weave." + subclassFilename.substring(0, subclassFilename.length() - 6); // minus ".class"
+				loader.loadClass(subclassName);
+			}
+			
+			return outer.newInstance();
 		} catch (Throwable t) {
 			// If in Fiji/ImageJ, show the exception in a text window:
 			try {
